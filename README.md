@@ -187,12 +187,14 @@ All tunable parameters live in [`backend/config.py`](backend/config.py):
 
 ## 🚀 Deploy Backend to Render
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ashmitsamanta/Ai_based-fake-identity-detection-system)
+
 This repository is pre-configured for seamless deployment to [Render](https://render.com) using Docker.
 
-### Option 1: Blueprint Deployment (Recommended — 1 Click)
+### Option 1: 1-Click Blueprint Deployment (Recommended)
 
-1. Push this repository to GitHub.
-2. Log in to [Render Dashboard](https://dashboard.render.com).
+Click the **Deploy to Render** button above or:
+1. Log in to [Render Dashboard](https://dashboard.render.com).
 3. Click **New +** → **Blueprint**.
 4. Connect your GitHub repository (`Ai_based-fake-identity-detection-system`).
 5. Render will automatically detect [`render.yaml`](render.yaml) and configure the Docker Web Service.
