@@ -3,8 +3,9 @@ title: Veri-Byte Forensic API
 emoji: 🔍
 colorFrom: blue
 colorTo: indigo
-sdk: docker
-app_port: 7860
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
 pinned: false
 ---
 
@@ -202,7 +203,7 @@ Hugging Face Spaces provides **16 GB RAM and 2 vCPUs completely free**, making i
 ### Step 1: Create a Space on Hugging Face
 1. Go to [huggingface.co/new-space](https://huggingface.co/new-space).
 2. Enter a **Space name** (e.g. `veri-byte-api`).
-3. Select **Docker** as the Space SDK (choose **Blank**).
+3. Select **Gradio** as the Space SDK (100% Free, NO credit card, NO Docker setup).
 4. Set Space visibility to **Public**.
 5. Click **Create Space**.
 
@@ -213,7 +214,7 @@ git remote add hf https://huggingface.co/spaces/<your-hf-username>/veri-byte-api
 git push hf main --force
 ```
 
-Hugging Face will automatically detect [`Dockerfile`](Dockerfile), build the container, and serve your API at:
+Hugging Face will automatically install system packages from [`packages.txt`](packages.txt) (Tesseract OCR), Python dependencies from [`requirements.txt`](requirements.txt), run [`app.py`](app.py), and serve your API with 16 GB RAM at:
 `https://<your-hf-username>-veri-byte-api.hf.space`
 
 You can test:
