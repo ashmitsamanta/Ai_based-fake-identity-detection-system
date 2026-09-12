@@ -24,8 +24,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Pre-download InsightFace buffalo_l models during Docker build for instant cold starts
-RUN python -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider']); app.prepare(ctx_id=0, det_size=(640, 640))"
+# Pre-download InsightFace buffalo_l models during Docker build for instant cold starts (safe fallback if offline during build)
+RUN python -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider']); app.prepare(ctx_id=0, det_size=(640, 640))" || true
 
 # Copy backend files and application code
 COPY . .
