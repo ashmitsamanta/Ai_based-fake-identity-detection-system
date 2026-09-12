@@ -221,6 +221,33 @@ And health check is available at:
 
 ---
 
+## 🌐 Deploy Frontend to Vercel
+
+The React frontend is ready to deploy to [Vercel](https://vercel.com).
+
+### 1-Click Deploy to Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fashmitsamanta%2FAi_based-fake-identity-detection-system&root-directory=frontend&env=VITE_API_URL&envDescription=Render%20backend%20URL%20(e.g.%20https%3A%2F%2Fveri-byte-backend-eokx.onrender.com))
+
+### Manual Setup on Vercel
+
+1. Log in to [Vercel Dashboard](https://vercel.com).
+2. Click **Add New...** → **Project**.
+3. Import your GitHub repository: `ashmitsamanta/Ai_based-fake-identity-detection-system`.
+4. In the Project Configuration:
+   - **Framework Preset**: Vite
+   - **Root Directory**: `frontend` *(or leave root; root `vercel.json` will automatically build the `frontend` folder)*
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+5. Under **Environment Variables**, add:
+   - `VITE_API_URL` = `https://<your-backend-service-name>.onrender.com`
+6. Click **Deploy**.
+
+Your frontend will be live on Vercel at `https://<your-project>.vercel.app`!
+
+---
+
 ## License
 
 Developed for **Smart India Hackathon 2026** — Problem Statement **SIH26188**.
+
