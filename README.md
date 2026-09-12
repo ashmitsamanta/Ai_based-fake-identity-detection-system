@@ -1,3 +1,13 @@
+---
+title: Veri-Byte Forensic API
+emoji: 🔍
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🔍 Forensic Document Inspector — SIH26188
 
 **AI-Based Fake Identity & Document Screening System**
@@ -182,6 +192,33 @@ All tunable parameters live in [`backend/config.py`](backend/config.py):
 | OCR | Tesseract (pytesseract) + passporteye (passport MRZ) |
 | Tampering Detection | PIL Error Level Analysis (ELA) + EXIF inspection |
 | Language & Runtime | Python 3.10+ & Node.js 18+ |
+
+---
+
+## 🤗 Deploy Backend to Hugging Face Spaces (Recommended — 16 GB Free RAM)
+
+Hugging Face Spaces provides **16 GB RAM and 2 vCPUs completely free**, making it the ideal host for memory-intensive AI/biometric workloads without Out-of-Memory crashes.
+
+### Step 1: Create a Space on Hugging Face
+1. Go to [huggingface.co/new-space](https://huggingface.co/new-space).
+2. Enter a **Space name** (e.g. `veri-byte-api`).
+3. Select **Docker** as the Space SDK (choose **Blank**).
+4. Set Space visibility to **Public**.
+5. Click **Create Space**.
+
+### Step 2: Connect Your GitHub Repository or Push Code
+In your local terminal, link and push directly to your Hugging Face Space:
+```bash
+git remote add hf https://huggingface.co/spaces/<your-hf-username>/veri-byte-api
+git push hf main --force
+```
+
+Hugging Face will automatically detect [`Dockerfile`](Dockerfile), build the container, and serve your API at:
+`https://<your-hf-username>-veri-byte-api.hf.space`
+
+You can test:
+- Health check: `https://<your-hf-username>-veri-byte-api.hf.space/api/health`
+- Interactive docs: `https://<your-hf-username>-veri-byte-api.hf.space/docs`
 
 ---
 
