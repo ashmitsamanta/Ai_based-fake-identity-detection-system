@@ -185,6 +185,40 @@ All tunable parameters live in [`backend/config.py`](backend/config.py):
 
 ---
 
+## 🚀 Deploy Backend to Render
+
+This repository is pre-configured for seamless deployment to [Render](https://render.com) using Docker.
+
+### Option 1: Blueprint Deployment (Recommended — 1 Click)
+
+1. Push this repository to GitHub.
+2. Log in to [Render Dashboard](https://dashboard.render.com).
+3. Click **New +** → **Blueprint**.
+4. Connect your GitHub repository (`Ai_based-fake-identity-detection-system`).
+5. Render will automatically detect [`render.yaml`](render.yaml) and configure the Docker Web Service.
+6. Click **Apply**.
+
+### Option 2: Manual Web Service Setup
+
+1. Click **New +** → **Web Service**.
+2. Connect your GitHub repository.
+3. Choose **Docker** as the Runtime (uses the root [`Dockerfile`](Dockerfile)).
+4. Set the **Health Check Path** to `/api/health`.
+5. Under **Environment Variables**, add:
+   - `PORT` = `10000` (or leave default, Render injects `$PORT`)
+   - `PYTHONUNBUFFERED` = `1`
+   - `TESSERACT_CMD` = `/usr/bin/tesseract`
+   - `ENABLE_NEURAL_DEEPFAKE` = `false` *(Set to `false` for Render Free Tier (512 MB RAM); set to `true` for Starter/Standard Tier with ≥ 1GB RAM)*
+   - `CORS_ORIGINS` = `*` *(or your frontend URL, e.g. `https://your-frontend.vercel.app`)*
+6. Click **Create Web Service**.
+
+Once deployed, your backend will be live at:
+`https://<your-service-name>.onrender.com`
+And health check is available at:
+`https://<your-service-name>.onrender.com/api/health`
+
+---
+
 ## License
 
 Developed for **Smart India Hackathon 2026** — Problem Statement **SIH26188**.

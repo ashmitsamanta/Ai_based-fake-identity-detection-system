@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: veri-byte-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: TESSERACT_CMD
+        value: /usr/bin/tesseract
+      - key: ENABLE_NEURAL_DEEPFAKE
+        value: "false"  # Set to "true" on Starter tier (2GB RAM) for full neural model; "false" safely keeps memory under 250MB on Free tier (512MB)
+      - key: CORS_ORIGINS
+        value: "*"

@@ -75,6 +75,10 @@ def _get_face_app():
 def _get_classifier():
     """Return cached Hugging Face image-classification pipeline for deepfake detection."""
     global _classifier
+    if not getattr(config, "ENABLE_NEURAL_DEEPFAKE", True):
+        logger.info("Neural deepfake detector disabled via ENABLE_NEURAL_DEEPFAKE=false.")
+        return None
+
     if _classifier is None:
         try:
             import torch

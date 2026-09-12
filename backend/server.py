@@ -38,10 +38,11 @@ app = FastAPI(
     description="High-performance biometric and forensic document screening API",
 )
 
-# Enable CORS for local React development (Vite runs on 5173 by default)
+# Enable CORS for local React development and production frontend
+origins = getattr(config, "CORS_ORIGINS", ["*"])
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins if origins != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,14 +52,16 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check():
     """Return health status and current forensic configuration thresholds."""
+    neural_enabled = getattr(config, "ENABLE_NEURAL_DEEPFAKE", True)
     return {
         "status": "healthy",
         "service": "Veri-Byte Document Inspector",
         "models": {
             "biometric": "InsightFace buffalo_l",
-            "deepfake": config.DEEPFAKE_MODEL_NAME,
+            "deepfake": config.DEEPFAKE_MODEL_NAME if neural_enabled else "Heuristic Ensemble (Low-Memory Mode)",
             "ocr": "Tesseract OCR",
         },
+        "neural_deepfake_enabled": neural_enabled,
         "thresholds": {
             "biometric_reject": config.BIOMETRIC_REJECT_THRESHOLD,
             "biometric_review": config.BIOMETRIC_REVIEW_THRESHOLD,
@@ -229,10 +232,19 @@ async def analyze_document_sync(
         cleanup_all_temp()
 
 
-# Mount React Production Build if present
+# Mount React Production Build if present, otherwise expose API index endpoint
 dist_path = getattr(config, "FRONTEND_DIST_DIR", config.BASE_DIR.parent / "frontend" / "dist")
 if dist_path.exists():
     app.mount("/", StaticFiles(directory=str(dist_path), html=True), name="static")
+else:
+    @app.get("/")
+    async def root_index():
+        return {
+            "service": "Veri-Byte Forensic Document Screening API",
+            "status": "online",
+            "docs": "/docs",
+            "health": "/api/health",
+        }
 
 
 if __name__ == "__main__":
@@ -240,4 +252,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     host = os.environ.get("HOST", "0.0.0.0" if "PORT" in os.environ else "127.0.0.1")
-    uvicorn.run("server:app", host=host, port=port, reload=False)
+    uvicorn.run(app, host=host, port=port, reload=False)
