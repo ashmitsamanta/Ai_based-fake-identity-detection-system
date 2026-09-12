@@ -10,6 +10,12 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: INSIGHTFACE_DET_SIZE
+        value: "320"
       - key: TESSERACT_CMD
         value: "/usr/bin/tesseract"
       - key: ENABLE_NEURAL_DEEPFAKE

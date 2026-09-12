@@ -7,14 +7,34 @@ using the InsightFace library (buffalo_l model pack).
 
 from __future__ import annotations
 
+import logging
+import os
+from typing import Optional
+
 import cv2
 import numpy as np
 from insightface.app import FaceAnalysis
 
-# Initialize the InsightFace analysis app globally so models load only once.
-# Using 'buffalo_l' for robust detection and recognition.
-_FACE_APP = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
-_FACE_APP.prepare(ctx_id=0, det_size=(640, 640))
+logger = logging.getLogger(__name__)
+
+# Lazy-loaded singleton so server boots in <1 second and stays well under memory limits
+_FACE_APP: Optional[FaceAnalysis] = None
+
+
+def get_face_app() -> FaceAnalysis:
+    """Return cached FaceAnalysis instance, loading models on demand with memory-conscious settings."""
+    global _FACE_APP
+    if _FACE_APP is None:
+        det_size = int(os.environ.get("INSIGHTFACE_DET_SIZE", "320"))
+        logger.info("Initializing InsightFace (allowed_modules=['detection', 'recognition'], det_size=%s)...", det_size)
+        app = FaceAnalysis(
+            name="buffalo_l",
+            allowed_modules=["detection", "recognition"],
+            providers=["CPUExecutionProvider"],
+        )
+        app.prepare(ctx_id=0, det_size=(det_size, det_size))
+        _FACE_APP = app
+    return _FACE_APP
 
 
 def _bytes_to_cv2(image_bytes: bytes) -> np.ndarray:
@@ -37,13 +57,15 @@ def compare_faces(reference_bytes: bytes, live_bytes: bytes) -> dict:
     Returns:
         A dictionary containing the similarity score (0–100) and match status.
     """
+    face_app = get_face_app()
+
     # 1. Decode bytes to OpenCV format
     ref_img = _bytes_to_cv2(reference_bytes)
     live_img = _bytes_to_cv2(live_bytes)
 
     # 2. Extract faces and embeddings
-    ref_faces = _FACE_APP.get(ref_img)
-    live_faces = _FACE_APP.get(live_img)
+    ref_faces = face_app.get(ref_img)
+    live_faces = face_app.get(live_img)
 
     if not ref_faces:
         raise ValueError("No face detected in the reference identity document.")

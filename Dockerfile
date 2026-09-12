@@ -2,7 +2,12 @@ FROM python:3.10-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    MALLOC_ARENA_MAX=2 \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    INSIGHTFACE_DET_SIZE=320
 
 WORKDIR /app
 
@@ -24,8 +29,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Pre-download InsightFace buffalo_l models during Docker build for instant cold starts (safe fallback if offline during build)
-RUN python -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider']); app.prepare(ctx_id=0, det_size=(640, 640))" || true
+# Pre-download InsightFace buffalo_l models during Docker build (memory-optimized: detection + recognition only)
+RUN python -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(name='buffalo_l', allowed_modules=['detection', 'recognition'], providers=['CPUExecutionProvider']); app.prepare(ctx_id=0, det_size=(320, 320))" || true
 
 # Copy backend files and application code
 COPY . .

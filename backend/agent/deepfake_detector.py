@@ -56,20 +56,13 @@ _classifier = None
 
 
 def _get_face_app():
-    """Return a cached InsightFace FaceAnalysis instance (load on first call)."""
-    global _face_app
-    if _face_app is None:
-        try:
-            from insightface.app import FaceAnalysis
-            _face_app = FaceAnalysis(
-                name="buffalo_l",
-                providers=["CPUExecutionProvider"],
-            )
-            _face_app.prepare(ctx_id=0, det_size=(640, 640))
-        except Exception as exc:
-            logger.warning("InsightFace unavailable for deepfake detector: %s", exc)
-            _face_app = None
-    return _face_app
+    """Return shared cached InsightFace FaceAnalysis instance from face_engine."""
+    try:
+        from agent.face_engine import get_face_app
+        return get_face_app()
+    except Exception as exc:
+        logger.warning("InsightFace unavailable for deepfake detector: %s", exc)
+        return None
 
 
 def _get_classifier():
