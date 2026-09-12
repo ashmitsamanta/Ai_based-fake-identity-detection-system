@@ -21,8 +21,10 @@ ROOT_DIR: Path = BASE_DIR.parent
 TEMP_DIR: Path = BASE_DIR / "temp_uploads"
 TEMP_DIR.mkdir(exist_ok=True)
 FRONTEND_DIST_DIR: Path = ROOT_DIR / "frontend" / "dist"
-_cors_raw = os.environ.get("CORS_ORIGINS", "*")
+_DEFAULT_LOCAL_CORS: str = "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8000,http://localhost:8000"
+_cors_raw = os.environ.get("CORS_ORIGINS", _DEFAULT_LOCAL_CORS)
 CORS_ORIGINS: List[str] = [orig.strip() for orig in _cors_raw.split(",") if orig.strip()]
+
 
 
 # ─────────────────────────────────────────────────────────────
@@ -62,9 +64,10 @@ DEEPFAKE_REJECT_THRESHOLD: float = 80.0
 DEEPFAKE_REVIEW_THRESHOLD: float = 66.0
 """AI-generated possibility / confidence > 66% -> MANUAL REVIEW (flagged as Suspicious). <= 66% approved as real."""
 
-# Toggle for Hugging Face neural classifier. Set ENABLE_NEURAL_DEEPFAKE=false in Render environment
-# if running on the Free tier (512MB RAM) to safely conserve memory while preserving all other signals.
+# Toggle for neural classifier. Set ENABLE_NEURAL_DEEPFAKE=false to conserve memory
+# and run strictly on lightweight local computer-vision heuristics (texture, FFT, skin, symmetry).
 ENABLE_NEURAL_DEEPFAKE: bool = os.environ.get("ENABLE_NEURAL_DEEPFAKE", "true").strip().lower() not in ("0", "false", "no")
+
 
 # Model repository identifier
 DEEPFAKE_MODEL_NAME: str = "prithivMLmods/deepfake-detector-model-v1"
