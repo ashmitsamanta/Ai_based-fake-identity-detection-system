@@ -65,6 +65,26 @@ export default function UploadSection({
     return () => stopCamera();
   }, [selfieMode, selfieDataUrl]);
 
+  // Support pasting images from clipboard (e.g. Ctrl+V)
+  useEffect(() => {
+    const handlePaste = (e) => {
+      if (e.clipboardData && e.clipboardData.items) {
+        for (let i = 0; i < e.clipboardData.items.length; i++) {
+          const item = e.clipboardData.items[i];
+          if (item.type && item.type.startsWith('image/')) {
+            const blob = item.getAsFile();
+            if (blob) {
+              handleIdFile(blob);
+              break;
+            }
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
+
   // Capture Selfie from Webcam
   const captureSelfie = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -118,7 +138,8 @@ export default function UploadSection({
   };
 
   const hasSelfie = Boolean(selfieDataUrl || selfieFile);
-  const canAnalyze = Boolean(idFile && hasSelfie && !isAnalyzing);
+  const canAnalyze = Boolean(idFile && !isAnalyzing);
+  const isDocOnly = Boolean(idFile && !hasSelfie);
 
   return (
     <div className="upload-container">
@@ -308,12 +329,10 @@ export default function UploadSection({
           <div className={`status-indicator ${canAnalyze ? 'ready' : ''}`}></div>
           <span>
             {canAnalyze
-              ? 'Ready for analysis. Fast-fail gatekeeper and deepfake checks initialized.'
-              : !idFile && !hasSelfie
-              ? 'Please upload an ID document and capture/upload a live selfie to proceed.'
-              : !idFile
-              ? 'Please upload an ID document image.'
-              : 'Please capture a live selfie to activate biometric gatekeeper.'}
+              ? isDocOnly
+                ? 'Document-Only Screening Ready: Document format validation, AI deepfake analysis & ELA tampering detection.'
+                : 'Full Verification Ready: Biometric Face Gatekeeper + Format Validation + Deepfake + ELA Tampering.'
+              : 'Please upload an ID document image (Aadhaar, PAN, Passport, Voter ID) to start screening.'}
           </span>
         </div>
 
@@ -328,10 +347,15 @@ export default function UploadSection({
               <span className="spinner"></span>
               Screening Document...
             </>
+          ) : isDocOnly ? (
+            <>
+              <span>🔍</span>
+              Screen Document (Document-Only)
+            </>
           ) : (
             <>
               <span>🚀</span>
-              Run Veri-Byte Analysis
+              Run Full Verification (ID + Selfie)
             </>
           )}
         </button>

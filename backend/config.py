@@ -137,6 +137,15 @@ ID_DOCUMENT_ZONES: ZoneMap = {
     "Footer/Logo": (0.85, 1.00, 0.00, 1.00),
 }
 
+AADHAAR_LETTER_ZONES: ZoneMap = {
+    "Top Header / Emblem": (0.00, 0.15, 0.05, 0.95),
+    "Address / Demographic": (0.20, 0.45, 0.10, 0.90),
+    "QR code area": (0.44, 0.63, 0.50, 0.95),
+    "Card Photo area": (0.72, 0.88, 0.12, 0.38),
+    "Card Name & DOB": (0.72, 0.86, 0.38, 0.95),
+    "Card Aadhaar Number": (0.90, 0.98, 0.15, 0.85),
+}
+
 PASSPORT_ZONES: ZoneMap = {
     "Photo area":  (0.05, 0.55, 0.02, 0.35),
     "Data fields": (0.05, 0.55, 0.38, 0.98),
@@ -144,6 +153,7 @@ PASSPORT_ZONES: ZoneMap = {
 }
 
 CRITICAL_FIELDS_ID: Set[str] = {"Name field", "DOB field", "ID Number"}
+CRITICAL_FIELDS_AADHAAR_LETTER: Set[str] = {"Card Photo area", "Card Name & DOB", "Card Aadhaar Number", "QR code area"}
 CRITICAL_FIELDS_PASSPORT: Set[str] = {"Data fields", "MRZ zone", "Photo area"}
 
 

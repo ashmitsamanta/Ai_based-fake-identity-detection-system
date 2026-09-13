@@ -50,8 +50,12 @@ export default function MetricsRow({ results }) {
         </div>
         <div className="metric-value-box">
           <span className="metric-main-value" title={docType}>{docType}</span>
-          <span className="metric-sub-value">
-            {ocr.format_valid ? '✓ Checksum Valid' : 'Format Check Pending'}
+          <span className={`metric-sub-value ${ocr.format_valid === false ? 'text-danger font-bold' : ocr.format_valid === true ? 'text-success' : ''}`}>
+            {ocr.format_valid === false
+              ? '❌ Format / Checksum Invalid'
+              : ocr.format_valid === true
+              ? '✓ Format Valid'
+              : 'Format Check Pending'}
           </span>
         </div>
       </div>
@@ -97,10 +101,10 @@ export default function MetricsRow({ results }) {
         </div>
         <div className="metric-value-box">
           <span className="metric-main-value">
-            {bioMatch ? `${bioMatch}%` : 'Failed / Blocked'}
+            {bio.document_only ? 'N/A' : bioMatch ? `${bioMatch}%` : 'Failed / Blocked'}
           </span>
-          <span className={`metric-sub-value ${bioPassed ? 'text-success' : 'text-danger'}`}>
-            {bioPassed ? '✓ Gatekeeper (>50%) Passed' : '✕ Match Failed (<50%)'}
+          <span className={`metric-sub-value ${bio.document_only ? 'text-info' : bioPassed ? 'text-success' : 'text-danger'}`}>
+            {bio.document_only ? 'ℹ Document-Only Screening' : bioPassed ? '✓ Gatekeeper (>50%) Passed' : '✕ Match Failed (<50%)'}
           </span>
         </div>
       </div>

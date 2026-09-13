@@ -80,7 +80,7 @@ export default function App() {
 
   // Run Real-Time Streaming Analysis
   const handleAnalyze = async () => {
-    if (!idFile || (!selfieFile && !selfieDataUrl) || isAnalyzing) return;
+    if (!idFile || isAnalyzing) return;
 
     setIsAnalyzing(true);
     setIsComplete(false);

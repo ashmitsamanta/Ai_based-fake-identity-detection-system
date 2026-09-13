@@ -32,6 +32,10 @@ class OcrFields(TypedDict, total=False):
     date_of_birth: Optional[str]
     date_of_expiry: Optional[str]
     gender: Optional[str]
+    vid: Optional[str]
+    enrolment_no: Optional[str]
+    checksum_status: Optional[str]
+    qr_code_status: Optional[str]
 
 
 class OcrResult(TypedDict):
@@ -41,6 +45,8 @@ class OcrResult(TypedDict):
     raw_text: str               # full OCR dump (for display / debugging)
     fields: OcrFields           # parsed key-value data
     format_valid: bool          # did the ID number / MRZ checksum pass?
+    validation_reasons: List[str]  # Detailed checksum and format validation reasons
+
 
 
 # ── Tampering Detection ─────────────────────────────────────

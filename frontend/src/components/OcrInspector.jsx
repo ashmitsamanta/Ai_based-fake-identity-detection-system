@@ -53,6 +53,29 @@ export default function OcrInspector({ ocr }) {
         </div>
       </div>
 
+      {/* Cryptographic Checksum Banner */}
+      {ocr.validation_reasons && ocr.validation_reasons.length > 0 && (
+        <div
+          className={`checksum-banner ${ocr.format_valid ? 'banner-success' : 'banner-danger'}`}
+          style={{
+            margin: '0 0 16px 0',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            background: ocr.format_valid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            border: `1px solid ${ocr.format_valid ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: '6px', color: ocr.format_valid ? '#34d399' : '#f87171' }}>
+            {ocr.format_valid ? '✓ Document Format & Checksum Verified' : '⚠️ Format / Validation Failure (Counterfeit or Invalid ID)'}
+          </div>
+          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.5 }}>
+            {ocr.validation_reasons.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {activeTab === 'fields' ? (
         <div className="ocr-fields-grid">
           {entries.length > 0 ? (

@@ -126,13 +126,12 @@ async def analyze_document_stream(
         # Save ID card to temp upload dir
         id_path = save_temp_upload(id_file)
 
-        # Save Selfie (file or webcam data URL)
+        # Save Selfie (file or webcam data URL) - optional for Document-Only Screening
+        selfie_path: Optional[str] = None
         if selfie_file is not None and selfie_file.filename:
             selfie_path = save_temp_upload(selfie_file)
-        elif selfie_data:
+        elif selfie_data and selfie_data.strip():
             selfie_path = _save_data_url(selfie_data, "selfie_capture")
-        else:
-            raise HTTPException(status_code=400, detail="Live selfie is required for verification.")
     except HTTPException:
         raise
     except Exception as exc:
@@ -194,12 +193,11 @@ async def analyze_document_sync(
     """
     try:
         id_path = save_temp_upload(id_file)
+        selfie_path: Optional[str] = None
         if selfie_file is not None and selfie_file.filename:
             selfie_path = save_temp_upload(selfie_file)
-        elif selfie_data:
+        elif selfie_data and selfie_data.strip():
             selfie_path = _save_data_url(selfie_data, "selfie_capture")
-        else:
-            raise HTTPException(status_code=400, detail="Live selfie is required for verification.")
     except HTTPException:
         raise
     except Exception as exc:
