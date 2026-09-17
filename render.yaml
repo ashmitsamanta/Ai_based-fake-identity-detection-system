@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: veri-byte-backend
+    runtime: docker
+    dockerfilePath: Dockerfile
+    plan: standard
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENABLE_NEURAL_DEEPFAKE
+        value: "true"
+      - key: CORS_ORIGINS
+        value: "*"

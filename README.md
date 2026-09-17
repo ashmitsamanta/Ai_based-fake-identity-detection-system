@@ -303,6 +303,35 @@ This updates `frontend/dist/`, which FastAPI serves automatically.
 
 ---
 
+## ☁️ Cloud Deployment (Vercel + Backend)
+
+Veri-Byte uses a decoupled microservice architecture optimized for cloud deployment:
+- **Frontend (React / Vite UI)**: Deployed globally on **Vercel** with automatic CDN edge delivery and instant preview branches.
+- **Backend (Python AI Engine)**: Deployed as a containerized Docker service on **Render**, **Railway**, **Fly.io**, or **Hugging Face Spaces** (where PyTorch, InsightFace, and Tesseract OCR run with dedicated CPU/GPU).
+
+### 1. Deploy Frontend on Vercel (1-Click)
+1. Go to [Vercel Dashboard](https://vercel.com) and click **"Add New Project"** -> **"Import Git Repository"**.
+2. Select this repository (`ashmitsamanta/Ai_based-fake-identity-detection-system`).
+3. Vercel will automatically detect [`vercel.json`](vercel.json) and [`package.json`](package.json):
+   - **Framework Preset**: `Vite`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `frontend/dist`
+4. *(Optional)* Add the Environment Variable in Vercel:
+   - **Key**: `VITE_API_URL`
+   - **Value**: `https://your-backend-service.onrender.com` (your deployed backend URL).
+5. Click **Deploy**. Your frontend is live with SSL at `https://<your-project>.vercel.app`!
+
+### 2. Deploy AI Backend on Cloud (Render / Railway / Docker)
+The repository includes a production-ready [`Dockerfile`](Dockerfile) with pre-installed Tesseract-OCR, system C++ libraries, InsightFace, and PyTorch:
+- **Render.com**: Connect the repo and click **New Web Service** -> select **Docker** (or use [`render.yaml`](render.yaml) blueprint).
+- **Railway.app**: Click **New Project** -> **Deploy from GitHub repo** -> Railway detects the `Dockerfile` automatically.
+- **Environment Variables**:
+  - `PORT=8000`
+  - `CORS_ORIGINS=https://<your-project>.vercel.app` (or `*`)
+  - `ENABLE_NEURAL_DEEPFAKE=true`
+
+---
+
 ## ⚙️ Configuration & Thresholds
 
 All tunable thresholds and heuristic weights are maintained in [`backend/config.py`](backend/config.py):
