@@ -121,3 +121,5 @@ class StepUpdate(TypedDict, total=False):
     verdict: Verdict
     report: str
     results: Dict[str, dict]
+    reasons: List[str]
+    ela_image_base64: Optional[str]

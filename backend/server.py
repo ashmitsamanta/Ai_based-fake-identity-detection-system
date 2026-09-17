@@ -27,7 +27,11 @@ from fastapi.staticfiles import StaticFiles
 
 import config
 from agent.forensic_agent import run_analysis
-from utils.image_utils import cleanup_all_temp, save_temp_upload
+from utils.image_utils import (
+    cleanup_session_dir,
+    create_session_temp_dir,
+    save_temp_upload,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("veri-byte-api")
@@ -72,8 +76,8 @@ async def health_check():
     }
 
 
-def _save_data_url(data_url: str, filename_prefix: str = "selfie") -> str:
-    """Decode a base64 Data URL (from webcam capture) and persist to temp folder."""
+def _save_data_url(data_url: str, session_dir: Path | str, filename_prefix: str = "selfie") -> str:
+    """Decode a base64 Data URL (from webcam capture) and persist to session temp folder."""
     try:
         header, encoded = data_url.split(",", 1)
         suffix = ".jpg"
@@ -83,7 +87,7 @@ def _save_data_url(data_url: str, filename_prefix: str = "selfie") -> str:
             suffix = ".webp"
 
         image_bytes = base64.b64decode(encoded)
-        return save_temp_upload(image_bytes, f"{filename_prefix}{suffix}")
+        return save_temp_upload(image_bytes, f"{filename_prefix}{suffix}", session_dir=session_dir)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid selfie data URL: {exc}")
 
@@ -122,19 +126,22 @@ async def analyze_document_stream(
     - selfie_file: Live selfie image file OR
     - selfie_data: Base64 data URL captured directly from browser webcam.
     """
+    session_dir = create_session_temp_dir()
     try:
-        # Save ID card to temp upload dir
-        id_path = save_temp_upload(id_file)
+        # Save ID card to isolated session upload dir
+        id_path = save_temp_upload(id_file, session_dir=session_dir)
 
         # Save Selfie (file or webcam data URL) - optional for Document-Only Screening
         selfie_path: Optional[str] = None
         if selfie_file is not None and selfie_file.filename:
-            selfie_path = save_temp_upload(selfie_file)
+            selfie_path = save_temp_upload(selfie_file, session_dir=session_dir)
         elif selfie_data and selfie_data.strip():
-            selfie_path = _save_data_url(selfie_data, "selfie_capture")
+            selfie_path = _save_data_url(selfie_data, session_dir=session_dir, filename_prefix="selfie_capture")
     except HTTPException:
+        cleanup_session_dir(session_dir)
         raise
     except Exception as exc:
+        cleanup_session_dir(session_dir)
         logger.error("Failed to process upload files: %s", exc, exc_info=True)
         raise HTTPException(status_code=400, detail=f"Failed to process uploads: {exc}")
 
@@ -164,11 +171,12 @@ async def analyze_document_stream(
                 "verdict": "REJECT",
                 "report": f"# Analysis Pipeline Error\n\nAn unexpected error occurred during analysis: `{exc}`",
                 "results": {},
+                "reasons": [f"Pipeline internal error: {exc}"],
             }
             yield f"data: {json.dumps(err_update)}\n\n"
         finally:
-            # Sensitive identity documents and selfies are cleaned up immediately
-            cleanup_all_temp()
+            # Clean up only this request's isolated session folder
+            cleanup_session_dir(session_dir)
 
     return StreamingResponse(
         event_generator(),
@@ -191,16 +199,19 @@ async def analyze_document_sync(
     Synchronous fallback endpoint returning the complete forensic analysis
     result in a single JSON payload.
     """
+    session_dir = create_session_temp_dir()
     try:
-        id_path = save_temp_upload(id_file)
+        id_path = save_temp_upload(id_file, session_dir=session_dir)
         selfie_path: Optional[str] = None
         if selfie_file is not None and selfie_file.filename:
-            selfie_path = save_temp_upload(selfie_file)
+            selfie_path = save_temp_upload(selfie_file, session_dir=session_dir)
         elif selfie_data and selfie_data.strip():
-            selfie_path = _save_data_url(selfie_data, "selfie_capture")
+            selfie_path = _save_data_url(selfie_data, session_dir=session_dir, filename_prefix="selfie_capture")
     except HTTPException:
+        cleanup_session_dir(session_dir)
         raise
     except Exception as exc:
+        cleanup_session_dir(session_dir)
         raise HTTPException(status_code=400, detail=f"Failed to process uploads: {exc}")
 
     step_history = []
@@ -223,11 +234,12 @@ async def analyze_document_sync(
             "verdict": final_payload.get("verdict", "UNKNOWN"),
             "report": final_payload.get("report", ""),
             "results": final_payload.get("results", {}),
+            "reasons": final_payload.get("reasons", []),
             "ela_image_base64": ela_b64,
             "steps": step_history,
         }
     finally:
-        cleanup_all_temp()
+        cleanup_session_dir(session_dir)
 
 
 # Mount React Production Build if present, otherwise expose API index endpoint

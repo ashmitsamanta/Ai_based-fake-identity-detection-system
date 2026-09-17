@@ -43,6 +43,7 @@ from agent.deepfake_detector import detect_deepfake
 
 # Domestic ID validation algorithms
 from utils.verhoeff import validate_aadhaar, validate_pan, validate_vid
+from utils.image_utils import read_image_cv2_safe
 
 logger = logging.getLogger(__name__)
 pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
@@ -103,9 +104,11 @@ def run_analysis(
             yield {"step": "biometric", "status": "error", "message": bio_result["error"]}
             verdict = "REJECT"
             reasons = [f"Gatekeeper failed: {bio_result['error']}"]
+            results["reasons"] = reasons
             yield {
                 "step": "verdict", "status": "complete", "message": "Rejected by Gatekeeper",
                 "verdict": verdict, "report": _build_report(results, verdict, reasons), "results": results,
+                "reasons": reasons,
             }
             return
 
@@ -114,9 +117,11 @@ def run_analysis(
             yield {"step": "biometric", "status": "error", "message": f"Match Failed: {score:.1f}%"}
             verdict = "REJECT"
             reasons = [f"Gatekeeper blocked: Biometric match ({score:.1f}%) is below the {config.BIOMETRIC_REJECT_THRESHOLD}% threshold."]
+            results["reasons"] = reasons
             yield {
                 "step": "verdict", "status": "complete", "message": "Rejected by Gatekeeper",
                 "verdict": verdict, "report": _build_report(results, verdict, reasons), "results": results,
+                "reasons": reasons,
             }
             return
 
@@ -146,9 +151,11 @@ def run_analysis(
             reasons = [
                 f"Flagged AI Generated: AI possibility ({df_confidence:.1f}%) > {config.DEEPFAKE_REJECT_THRESHOLD:.0f}% threshold - rejected."
             ]
+            results["reasons"] = reasons
             yield {
                 "step": "verdict", "status": "complete", "message": "Rejected: Flagged AI Generated",
                 "verdict": verdict, "report": _build_report(results, verdict, reasons), "results": results,
+                "reasons": reasons,
             }
             return
         elif df_confidence > config.DEEPFAKE_REVIEW_THRESHOLD:
@@ -206,10 +213,11 @@ def run_analysis(
     # ── Step 5: Verdict ───────────────────────────────────────
     yield {"step": "verdict", "status": "running", "message": "Applying forensic decision matrix..."}
     verdict, reasons = _apply_decision_matrix(results)
+    results["reasons"] = reasons
     report = _build_report(results, verdict, reasons)
     yield {
         "step": "verdict", "status": "complete", "message": f"Final verdict: {verdict}",
-        "verdict": verdict, "report": report, "results": results,
+        "verdict": verdict, "report": report, "results": results, "reasons": reasons,
     }
 
 
@@ -235,7 +243,7 @@ def _verify_face(id_path: str, selfie_path: str) -> BiometricResult:
 def _preprocess_for_ocr(id_path: str) -> Image.Image:
     """Preprocess document image with scaling and contrast normalization for high Tesseract accuracy."""
     try:
-        cv_img = cv2.imread(id_path)
+        cv_img = read_image_cv2_safe(id_path)
         if cv_img is None:
             return Image.open(id_path)
         gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
@@ -260,7 +268,7 @@ def _scan_and_validate_qr(id_path: str, expected_id: Optional[str] = None) -> Tu
         barcodes = zxingcpp.read_barcodes(img)
         if not barcodes:
             # Try contrast-enhanced upscaled version
-            cv_img = cv2.imread(id_path)
+            cv_img = read_image_cv2_safe(id_path)
             if cv_img is not None:
                 gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
                 resized = cv2.resize(gray, (0, 0), fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
@@ -508,7 +516,9 @@ def _detect_tampering(id_path: str, id_type: str) -> TamperResult:
         zones = config.ID_DOCUMENT_ZONES
         critical = config.CRITICAL_FIELDS_ID
 
-    ela_path = str(config.TEMP_DIR / f"ela_{Path(id_path).stem}.jpg")
+    # Save ELA visualization into same directory as id_path (scoped session dir)
+    parent_dir = Path(id_path).parent if Path(id_path).parent.exists() else config.TEMP_DIR
+    ela_path = str(parent_dir / f"ela_{Path(id_path).stem}.jpg")
     original.save(ela_path, "JPEG", quality=config.ELA_QUALITY)
     resaved = Image.open(ela_path)
     diff = ImageChops.difference(original, resaved)

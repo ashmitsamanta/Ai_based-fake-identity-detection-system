@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from typing import Optional
 
 import cv2
@@ -17,23 +18,26 @@ from insightface.app import FaceAnalysis
 
 logger = logging.getLogger(__name__)
 
-# Lazy-loaded singleton so server boots in <1 second and stays well under memory limits
+# Lazy-loaded singleton with double-checked lock for thread safety
 _FACE_APP: Optional[FaceAnalysis] = None
+_FACE_APP_LOCK = threading.Lock()
 
 
 def get_face_app() -> FaceAnalysis:
     """Return cached FaceAnalysis instance, loading models on demand with memory-conscious settings."""
     global _FACE_APP
     if _FACE_APP is None:
-        det_size = int(os.environ.get("INSIGHTFACE_DET_SIZE", "320"))
-        logger.info("Initializing InsightFace (allowed_modules=['detection', 'recognition'], det_size=%s)...", det_size)
-        app = FaceAnalysis(
-            name="buffalo_l",
-            allowed_modules=["detection", "recognition"],
-            providers=["CPUExecutionProvider"],
-        )
-        app.prepare(ctx_id=0, det_size=(det_size, det_size))
-        _FACE_APP = app
+        with _FACE_APP_LOCK:
+            if _FACE_APP is None:
+                det_size = int(os.environ.get("INSIGHTFACE_DET_SIZE", "320"))
+                logger.info("Initializing InsightFace (allowed_modules=['detection', 'recognition'], det_size=%s)...", det_size)
+                app = FaceAnalysis(
+                    name="buffalo_l",
+                    allowed_modules=["detection", "recognition"],
+                    providers=["CPUExecutionProvider"],
+                )
+                app.prepare(ctx_id=0, det_size=(det_size, det_size))
+                _FACE_APP = app
     return _FACE_APP
 
 

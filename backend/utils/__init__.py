@@ -7,6 +7,9 @@ if _backend_dir not in sys.path:
 
 from utils.image_utils import (  # noqa: F401 — re-export
     cleanup_all_temp,
+    cleanup_session_dir,
+    create_session_temp_dir,
+    read_image_cv2_safe,
     save_temp_upload,
     validate_image_file,
 )

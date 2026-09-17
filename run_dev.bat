@@ -16,6 +16,6 @@ if exist "%~dp0venv\Scripts\python.exe" (
 
 start "Veri-Byte Backend API" cmd /k "cd /d ""%~dp0backend"" && ""%PYTHON_EXE%"" server.py"
 timeout /t 2 /nobreak >nul
-start "Veri-Byte React Dev Server" cmd /k "cd /d ""%~dp0frontend"" && node node_modules\vite\bin\vite.js"
+start "Veri-Byte React Dev Server" cmd /k "cd /d ""%~dp0frontend"" && npm run dev"
 
 echo Both services launched!

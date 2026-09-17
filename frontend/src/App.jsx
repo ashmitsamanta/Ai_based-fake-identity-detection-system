@@ -166,7 +166,11 @@ export default function App() {
     if (step === 'verdict' && status === 'complete') {
       setFinalVerdict(data.verdict || 'UNKNOWN');
       setFinalReport(data.report || '');
-      setAllResults(data.results || {});
+      const resultsObj = data.results ? { ...data.results } : {};
+      if (data.reasons) {
+        resultsObj.reasons = data.reasons;
+      }
+      setAllResults(resultsObj);
       if (data.ela_image_base64) {
         setElaBase64(data.ela_image_base64);
       }

@@ -10,11 +10,26 @@ export default function OcrInspector({ ocr }) {
   const rawText = ocr.raw_text || '';
   const entries = Object.entries(fields).filter(([_, v]) => Boolean(v));
 
-  const copyRawText = () => {
+  const copyRawText = async () => {
     if (!rawText) return;
-    navigator.clipboard.writeText(rawText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(rawText);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = rawText;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.warn('Clipboard write failed:', e);
+    }
   };
 
   const formatKey = (key) => {

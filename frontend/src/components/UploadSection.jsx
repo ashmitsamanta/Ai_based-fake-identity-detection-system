@@ -14,12 +14,38 @@ export default function UploadSection({
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [isDraggingId, setIsDraggingId] = useState(false);
+  const [validationError, setValidationError] = useState(null);
+
+  const [idPreviewUrl, setIdPreviewUrl] = useState(null);
+  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
   const idInputRef = useRef(null);
   const selfieInputRef = useRef(null);
+
+  // Manage id preview URL lifecycle with cleanup
+  useEffect(() => {
+    if (!idFile) {
+      setIdPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(idFile);
+    setIdPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [idFile]);
+
+  // Manage selfie preview URL lifecycle with cleanup
+  useEffect(() => {
+    if (!selfieFile) {
+      setSelfiePreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selfieFile);
+    setSelfiePreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selfieFile]);
 
   // Start Camera Feed
   const startCamera = async () => {
@@ -46,7 +72,7 @@ export default function UploadSection({
     }
   };
 
-  // Stop Camera
+  // Stop Camera & free hardware
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -55,15 +81,17 @@ export default function UploadSection({
     setIsCameraActive(false);
   };
 
-  // Switch modes or unmount
+  // Turn off camera when analyzing to conserve GPU/CPU, or toggle on/off with mode
   useEffect(() => {
-    if (selfieMode === 'camera' && !selfieDataUrl) {
+    if (isAnalyzing) {
+      stopCamera();
+    } else if (selfieMode === 'camera' && !selfieDataUrl) {
       startCamera();
     } else {
       stopCamera();
     }
     return () => stopCamera();
-  }, [selfieMode, selfieDataUrl]);
+  }, [selfieMode, selfieDataUrl, isAnalyzing]);
 
   // Support pasting images from clipboard (e.g. Ctrl+V)
   useEffect(() => {
@@ -112,11 +140,36 @@ export default function UploadSection({
     startCamera();
   };
 
-  // Handle ID File Selection
+  const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15MB limit
+
+  // Handle ID File Selection with validation
   const handleIdFile = (file) => {
-    if (file && file.type.startsWith('image/')) {
-      setIdFile(file);
+    setValidationError(null);
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      setValidationError('Invalid document format. Please upload an image (JPG, PNG, WEBP, BMP).');
+      return;
     }
+    if (file.size > MAX_FILE_BYTES) {
+      setValidationError('Document file size exceeds the 15 MB limit. Please select a smaller file.');
+      return;
+    }
+    setIdFile(file);
+  };
+
+  const handleSelfieUpload = (file) => {
+    setValidationError(null);
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      setValidationError('Invalid selfie format. Please upload an image file.');
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setValidationError('Selfie file size exceeds the 15 MB limit.');
+      return;
+    }
+    setSelfieFile(file);
+    setSelfieDataUrl(null);
   };
 
   // Handle ID Drag & Drop
@@ -143,6 +196,34 @@ export default function UploadSection({
 
   return (
     <div className="upload-container">
+      {validationError && (
+        <div className="glass-panel" style={{
+          margin: '0 0 16px 0',
+          padding: '12px 18px',
+          borderRadius: '10px',
+          background: 'rgba(239, 68, 68, 0.12)',
+          border: '1px solid rgba(239, 68, 68, 0.4)',
+          color: '#f87171',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <span>⚠️ {validationError}</span>
+          <button
+            onClick={() => setValidationError(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#f87171',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '1rem',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <div className="upload-grid">
         {/* Document Upload Card */}
         <div className="glass-panel upload-card">
@@ -170,7 +251,7 @@ export default function UploadSection({
             {idFile ? (
               <div className="preview-box">
                 <img
-                  src={URL.createObjectURL(idFile)}
+                  src={idPreviewUrl || ''}
                   alt="Uploaded ID Document"
                   className="preview-img"
                 />
@@ -284,16 +365,13 @@ export default function UploadSection({
                   accept="image/*"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) {
-                      setSelfieFile(f);
-                      setSelfieDataUrl(null);
-                    }
+                    if (f) handleSelfieUpload(f);
                   }}
                 />
                 {selfieFile ? (
                   <div className="preview-box">
                     <img
-                      src={URL.createObjectURL(selfieFile)}
+                      src={selfiePreviewUrl || ''}
                       alt="Uploaded Selfie"
                       className="preview-img"
                     />

@@ -38,10 +38,22 @@ export default function VerdictBadge({ verdict, report, results }) {
     tag = 'Fast-Fail Gatekeeper Violation or Tampering Detected';
   }
 
-  // Extract reasons from report or results
-  const reportLines = report ? report.split('\n') : [];
-  const reasonsIndex = reportLines.findIndex((line) => line.includes('## Reasoning'));
-  const reasons = reasonsIndex !== -1 ? reportLines.slice(reasonsIndex + 1).filter((l) => l.startsWith('- ')) : [];
+  // Extract reasons prioritizing direct structured array from backend, with robust markdown fallback
+  let reasons = [];
+  if (Array.isArray(results?.reasons) && results.reasons.length > 0) {
+    reasons = results.reasons;
+  } else if (report) {
+    const reportLines = report.split('\n');
+    const reasonsIndex = reportLines.findIndex((line) =>
+      line.toLowerCase().includes('reasoning') || line.toLowerCase().includes('findings')
+    );
+    if (reasonsIndex !== -1) {
+      reasons = reportLines
+        .slice(reasonsIndex + 1)
+        .filter((l) => l.trim().startsWith('- '))
+        .map((l) => l.trim().replace(/^- /, ''));
+    }
+  }
 
   return (
     <div className={`glass-panel verdict-banner ${configClass} animate-fade-in`}>
@@ -66,7 +78,7 @@ export default function VerdictBadge({ verdict, report, results }) {
             {reasons.map((r, i) => (
               <li key={i} className="reason-item">
                 <span className="reason-bullet">›</span>
-                <span>{r.replace(/^- /, '')}</span>
+                <span>{typeof r === 'string' ? r.replace(/^- /, '') : String(r)}</span>
               </li>
             ))}
           </ul>

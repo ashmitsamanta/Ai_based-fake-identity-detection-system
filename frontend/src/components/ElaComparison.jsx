@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function ElaComparison({ idFile, elaBase64, tampering }) {
   const [viewMode, setViewMode] = useState('side-by-side'); // 'side-by-side' or 'slider'
   const [sliderPos, setSliderPos] = useState(50);
+  const [originalUrl, setOriginalUrl] = useState(null);
+
+  useEffect(() => {
+    if (!idFile) {
+      setOriginalUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(idFile);
+    setOriginalUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [idFile]);
 
   if (!elaBase64 && !idFile) return null;
 
-  const originalUrl = idFile ? URL.createObjectURL(idFile) : null;
   const flaggedZones = tampering?.flagged_zones || [];
   const criticalFlagged = tampering?.critical_flagged || [];
   const suspiciousSoftware = tampering?.suspicious_software;

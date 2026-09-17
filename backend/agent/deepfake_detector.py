@@ -41,6 +41,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Optional
 
 import cv2
@@ -48,11 +49,13 @@ import numpy as np
 from PIL import Image
 
 import config
+from utils.image_utils import read_image_cv2_safe
 
 logger = logging.getLogger(__name__)
 
 _face_app = None
 _classifier = None
+_classifier_lock = threading.Lock()
 
 
 def _get_face_app():
@@ -73,27 +76,29 @@ def _get_classifier():
         return None
 
     if _classifier is None:
-        try:
-            import torch
-            from transformers import pipeline
-            device = 0 if torch.cuda.is_available() else -1
-            logger.info(
-                "Initializing deepfake classification model %s (device=%s)...",
-                config.DEEPFAKE_MODEL_NAME,
-                device,
-            )
-            _classifier = pipeline(
-                "image-classification",
-                model=config.DEEPFAKE_MODEL_NAME,
-                device=device,
-            )
-        except Exception as exc:
-            logger.warning(
-                "Deepfake neural model %s unavailable: %s",
-                config.DEEPFAKE_MODEL_NAME,
-                exc,
-            )
-            _classifier = None
+        with _classifier_lock:
+            if _classifier is None:
+                try:
+                    import torch
+                    from transformers import pipeline
+                    device = 0 if torch.cuda.is_available() else -1
+                    logger.info(
+                        "Initializing deepfake classification model %s (device=%s)...",
+                        config.DEEPFAKE_MODEL_NAME,
+                        device,
+                    )
+                    _classifier = pipeline(
+                        "image-classification",
+                        model=config.DEEPFAKE_MODEL_NAME,
+                        device=device,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Deepfake neural model %s unavailable: %s",
+                        config.DEEPFAKE_MODEL_NAME,
+                        exc,
+                    )
+                    _classifier = None
     return _classifier
 
 
@@ -142,7 +147,7 @@ def detect_deepfake(image_path: str) -> dict:
         error: Optional[str]
     """
     try:
-        img_bgr = cv2.imread(str(image_path))
+        img_bgr = read_image_cv2_safe(image_path)
         if img_bgr is None:
             raise ValueError(f"Could not read image at {image_path!r}")
 
