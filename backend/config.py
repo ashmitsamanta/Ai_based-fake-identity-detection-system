@@ -18,8 +18,14 @@ from typing import Any, Callable, Dict, List, Set, Tuple
 
 BASE_DIR: Path = Path(__file__).resolve().parent
 ROOT_DIR: Path = BASE_DIR.parent
-TEMP_DIR: Path = BASE_DIR / "temp_uploads"
-TEMP_DIR.mkdir(exist_ok=True)
+_env_temp = os.environ.get("TEMP_DIR")
+TEMP_DIR: Path = Path(_env_temp) if _env_temp else (BASE_DIR / "temp_uploads")
+try:
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    import tempfile
+    TEMP_DIR = Path(tempfile.gettempdir()) / "veri_byte_temp_uploads"
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
 FRONTEND_DIST_DIR: Path = ROOT_DIR / "frontend" / "dist"
 _DEFAULT_LOCAL_CORS: str = "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8000,http://localhost:8000"
 _cors_raw = os.environ.get("CORS_ORIGINS", _DEFAULT_LOCAL_CORS)

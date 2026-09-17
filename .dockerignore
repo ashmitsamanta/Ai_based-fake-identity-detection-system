@@ -1,0 +1,8 @@
+frontend/
+.git/
+node_modules/
+**/__pycache__/
+*.bat
+venv/
+.venv/
+sample_data/

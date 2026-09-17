@@ -47,7 +47,7 @@ origins = getattr(config, "CORS_ORIGINS", ["*"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if origins != ["*"] else ["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.onrender\.com|https://.*\.railway\.app|http://localhost:.*|http://127\.0\.0\.1:.*",
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.hf\.space|https://huggingface\.co|https://.*\.onrender\.com|https://.*\.railway\.app|http://localhost:.*|http://127\.0\.0\.1:.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -261,7 +261,9 @@ else:
 if __name__ == "__main__":
     import os
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    host = os.environ.get("HOST", "127.0.0.1")
+    default_port = 7860 if os.environ.get("SPACE_ID") else 8000
+    default_host = "0.0.0.0" if os.environ.get("SPACE_ID") else "127.0.0.1"
+    port = int(os.environ.get("PORT", default_port))
+    host = os.environ.get("HOST", default_host)
     uvicorn.run(app, host=host, port=port, reload=False)
 

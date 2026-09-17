@@ -1,3 +1,13 @@
+---
+title: Veri-Byte Backend
+emoji: 🔍
+colorFrom: indigo
+colorTo: gray
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🔍 Veri-Byte — Forensic Document Inspector
 
 **AI-Based Fake Identity & Document Screening System**  
@@ -303,32 +313,50 @@ This updates `frontend/dist/`, which FastAPI serves automatically.
 
 ---
 
-## ☁️ Cloud Deployment (Vercel + Backend)
+## ☁️ Cloud Deployment (Vercel + Hugging Face Spaces)
 
-Veri-Byte uses a decoupled microservice architecture optimized for cloud deployment:
-- **Frontend (React / Vite UI)**: Deployed globally on **Vercel** with automatic CDN edge delivery and instant preview branches.
-- **Backend (Python AI Engine)**: Deployed as a containerized Docker service on **Render**, **Railway**, **Fly.io**, or **Hugging Face Spaces** (where PyTorch, InsightFace, and Tesseract OCR run with dedicated CPU/GPU).
+Veri-Byte uses a decoupled microservice architecture:
+- **Frontend (React / Vite UI)**: Deployed on **Vercel** with automatic CDN edge delivery and instant preview branches.
+- **Backend (Python AI Engine)**: Deployed on **Hugging Face Spaces** (**16 GB RAM, 2 vCPUs free**, Docker supported). Because `prithivMLmods/deepfake-detector-model-v1` is hosted directly on HF, model downloads use HF's internal network.
 
-### 1. Deploy Frontend on Vercel (1-Click)
-1. Go to [Vercel Dashboard](https://vercel.com) and click **"Add New Project"** -> **"Import Git Repository"**.
-2. Select this repository (`ashmitsamanta/Ai_based-fake-identity-detection-system`).
-3. Vercel will automatically detect [`vercel.json`](vercel.json) and [`package.json`](package.json):
+---
+
+### Step 1: Deploy AI Backend on Hugging Face Spaces (Free 16GB RAM)
+
+1. **Create Space**:
+   - Go to [huggingface.co/new-space](https://huggingface.co/new-space).
+   - Name: `veri-byte-backend`
+   - License: `mit` / `apache-2.0`
+   - Space SDK: **Docker** (Blank)
+   - Hardware: **CPU basic • 2 vCPU • 16 GB RAM • Free**
+   - Visibility: **Public**
+2. **Push to Space**:
+   ```bash
+   git remote add space https://huggingface.co/spaces/<your-username>/veri-byte-backend
+   git push space main
+   ```
+   *(When prompted for password, enter a Hugging Face Access Token with **Write** permission from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)).*
+3. **Wait for Build**:
+   - The [`Dockerfile`](Dockerfile) runs as non-root `user` (uid 1000) and preloads InsightFace `buffalo_l` and SigLIP deepfake weights directly into the image so cold requests are instant.
+   - Once running, verify backend health:
+     ```bash
+     curl https://<your-username>-veri-byte-backend.hf.space/api/health
+     ```
+
+---
+
+### Step 2: Deploy Frontend on Vercel
+
+1. Go to [Vercel Dashboard](https://vercel.com) and click **"Add New Project"** ➔ **"Import Git Repository"**.
+2. Select your repository (`ashmitsamanta/Ai_based-fake-identity-detection-system`).
+3. Vercel automatically detects [`vercel.json`](vercel.json) and [`package.json`](package.json):
    - **Framework Preset**: `Vite`
    - **Build Command**: `npm run build`
    - **Output Directory**: `frontend/dist`
-4. *(Optional)* Add the Environment Variable in Vercel:
+4. Add Environment Variable in Vercel:
    - **Key**: `VITE_API_URL`
-   - **Value**: `https://your-backend-service.onrender.com` (your deployed backend URL).
+   - **Value**: `https://<your-username>-veri-byte-backend.hf.space` *(no trailing slash)*
 5. Click **Deploy**. Your frontend is live with SSL at `https://<your-project>.vercel.app`!
-
-### 2. Deploy AI Backend on Cloud (Render / Railway / Docker)
-The repository includes a production-ready [`Dockerfile`](Dockerfile) with pre-installed Tesseract-OCR, system C++ libraries, InsightFace, and PyTorch:
-- **Render.com**: Connect the repo and click **New Web Service** -> select **Docker** (or use [`render.yaml`](render.yaml) blueprint).
-- **Railway.app**: Click **New Project** -> **Deploy from GitHub repo** -> Railway detects the `Dockerfile` automatically.
-- **Environment Variables**:
-  - `PORT=8000`
-  - `CORS_ORIGINS=https://<your-project>.vercel.app` (or `*`)
-  - `ENABLE_NEURAL_DEEPFAKE=true`
 
 ---
 
