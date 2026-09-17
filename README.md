@@ -1,13 +1,3 @@
----
-title: Veri-Byte Backend
-emoji: 🔍
-colorFrom: indigo
-colorTo: gray
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # 🔍 Veri-Byte — Forensic Document Inspector
 
 **AI-Based Fake Identity & Document Screening System**  
@@ -236,7 +226,8 @@ Al-Based Fake Identity & Document Screening System/
 ├── .gcloudignore                        # Excludes local venv, node_modules & cache from Cloud Build
 ├── .dockerignore                        # Prevents host artifacts from polluting Docker build
 ├── Dockerfile                           # Production container (Python 3.11-slim, PyTorch CPU, InsightFace, SigLIP)
-├── deploy_cloud_run.ps1                 # Automated Google Cloud Run deployment script (PowerShell)
+├── deploy_cloud_run.ps1                 # Automated Cloud Run deployment script (Windows PowerShell)
+├── deploy_cloud_run.sh                  # Automated Cloud Run deployment script (POSIX Bash for Linux/macOS/Cloud Shell)
 ├── vercel.json                          # Vercel SPA routing and build configuration
 ├── requirements.txt                     # Convenience root pointer to backend/requirements.txt
 ├── run_dev.bat                          # Concurrent dev launcher (FastAPI + Vite Hot Reload)
@@ -322,52 +313,67 @@ This updates `frontend/dist/`, which FastAPI serves automatically.
 ## ☁️ Cloud Deployment (Google Cloud Run & Vercel)
 
 Veri-Byte uses an enterprise decoupled microservice architecture:
-- **Frontend (React / Vite UI)**: Deployed on **Vercel** with global CDN edge distribution, instant preview builds, and automatic SSL.
-- **Backend (Python AI Engine)**: Deployed on **Google Cloud Run** in `asia-south1` (Mumbai) for low latency (<50ms network round-trip in India) and scale-to-zero free tier economics. Alternatively deployable on **Hugging Face Spaces**.
+- **Frontend (React / Vite UI)**: Deployed on **Vercel** with worldwide CDN edge distribution, instant preview builds, and automatic SSL.
+- **Backend (Python AI Engine)**: Deployed on **Google Cloud Run** in `asia-south1` (Mumbai) for low latency (<50ms network round-trip in India), automated container orchestration, and scale-to-zero free tier economics.
 
 ---
 
-### Step 1: Deploy Backend to Google Cloud Run (Recommended)
+### Step 1: Deploy Backend to Google Cloud Run
 
 Google Cloud Run provides a monthly free tier covering:
 - **2,000,000 requests / month**
 - **180,000 vCPU-seconds / month**
 - **360,000 GiB-seconds / month**
-- **Scale-to-zero**: No billing while instances are idle.
+- **Scale-to-zero**: No compute charges while instances are idle.
 
-#### Automated Deployment (Windows PowerShell)
-Run the turnkey deployment script directly from the project root:
-```powershell
-.\deploy_cloud_run.ps1
-```
-The script will:
-1. Verify `gcloud` installation and active account authentication.
-2. Ensure required GCP APIs are enabled (`run.googleapis.com`, `cloudbuild.googleapis.com`, `artifactregistry.googleapis.com`).
-3. Build and deploy the container via Cloud Build (excluding local `venv/` and `node_modules/` via [`.gcloudignore`](.gcloudignore)).
-4. Automatically print your live Cloud Run URL and run a health check against `/api/health`.
+#### Option A: Turnkey Automated Script
 
-#### Manual Deployment (CLI)
+Turnkey deployment scripts are provided for all operating systems:
+
+- **Windows (PowerShell)**:
+  ```powershell
+  .\deploy_cloud_run.ps1
+  ```
+- **macOS / Linux / Google Cloud Shell (POSIX Bash)**:
+  ```bash
+  chmod +x deploy_cloud_run.sh
+  ./deploy_cloud_run.sh
+  ```
+
+**What the automated script does**:
+1. Checks for the `gcloud` CLI and verifies your active Google Cloud account.
+2. Ensures required GCP APIs are enabled (`run.googleapis.com`, `cloudbuild.googleapis.com`, `artifactregistry.googleapis.com`).
+3. Builds the container image via Cloud Build (excluding local `venv/` and `node_modules/` via [`.gcloudignore`](.gcloudignore)).
+4. Deploys to `asia-south1` (Mumbai) with `--concurrency 1`, 4 GiB RAM, and 2 vCPUs.
+5. Queries the live Service URL and runs an automated health check against `/api/health` with explicit diagnostic error reporting (differentiating between HTTP 403 auth blocks, container crash loops, and cold-start timeouts).
+
+#### Option B: Manual CLI Deployment
 
 1. **Install and Authenticate Google Cloud SDK**:
    ```powershell
-   # Windows (PowerShell)
+   # Windows (PowerShell via winget)
    winget install Google.CloudSDK
-   
-   # Authenticate
+
+   # macOS (Homebrew)
+   # brew install google-cloud-sdk
+
+   # Authenticate:
    gcloud init
    gcloud auth login
    ```
 
 2. **Create Project & Enable Required Services**:
-   ```powershell
+   ```bash
    gcloud projects create veri-byte-prod
    gcloud config set project veri-byte-prod
    gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
    ```
-   *(Ensure a billing account is linked to your project in the [GCP Billing Console](https://console.cloud.google.com/billing)).*
+   *(Note: A billing account with a payment card on file is required by Google Cloud to activate projects and services. No charges are incurred within the free tier).*
 
 3. **Deploy from Source**:
    From the repository root (where [`Dockerfile`](Dockerfile) and [`.gcloudignore`](.gcloudignore) reside):
+
+   **PowerShell (Windows)**:
    ```powershell
    gcloud run deploy veri-byte-backend `
      --source . `
@@ -379,9 +385,21 @@ The script will:
      --allow-unauthenticated `
      --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=*"
    ```
-   *(On Linux / macOS bash, replace backticks `` ` `` with backslashes `\`)*
 
-   **Key Flags Explained**:
+   **Bash (Linux / macOS / Cloud Shell)**:
+   ```bash
+   gcloud run deploy veri-byte-backend \
+     --source . \
+     --region asia-south1 \
+     --memory 4Gi \
+     --cpu 2 \
+     --concurrency 1 \
+     --timeout 300 \
+     --allow-unauthenticated \
+     --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=*"
+   ```
+
+   **Critical Flags Explained**:
    - `--concurrency 1`: Restricts requests to 1 per instance so CPU-bound InsightFace and SigLIP inference don't fight over the same vCPUs mid-pipeline.
    - `--memory 4Gi --cpu 2`: Provides ample memory and compute headroom for computer vision and OCR models.
    - `--region asia-south1`: Deploys to Mumbai for minimal round-trip latency in India.
@@ -392,16 +410,8 @@ The script will:
    curl https://<service-url>.run.app/api/health
    ```
 
-5. **Lock Down CORS (Post-Frontend Deployment)**:
-   Once your Vercel URL is live, tighten CORS from wildcard to your frontend domain:
-   ```powershell
-   gcloud run services update veri-byte-backend `
-     --region asia-south1 `
-     --update-env-vars CORS_ORIGINS=https://your-project.vercel.app
-   ```
-
 #### Cold-Start Demo Tactics
-Scale-to-zero means an idle container takes ~15–25s on the initial call to load Buffalo_L and SigLIP into memory:
+Scale-to-zero means an idle container takes ~15–25s on the initial call to load Buffalo_L and SigLIP weights into RAM:
 - **Warm-up Ping**: Hit `https://<service-url>.run.app/api/health` 2–3 minutes before presenting so the container is already warm in memory.
 - **Temporary Live Instance**: During a 1-hour live judging session, temporarily pin 1 warm instance (costs ~$0.03–$0.05 total):
   ```powershell
@@ -427,44 +437,14 @@ Scale-to-zero means an idle container takes ~15–25s on the initial call to loa
 
 ---
 
-### Step 3: Alternative Backend on Hugging Face Spaces (Free 16GB RAM)
+### Step 3: Lock Down CORS (Post-Deployment)
 
-If you prefer not to use a credit card for GCP, Hugging Face Spaces offers free 16 GB RAM Docker hosting:
-
-1. **Create Space**:
-   - Go to [huggingface.co/new-space](https://huggingface.co/new-space).
-   - Name: `veri-byte-backend`
-   - License: `mit` / `apache-2.0`
-   - Space SDK: **Docker** (Blank)
-   - Hardware: **CPU basic • 2 vCPU • 16 GB RAM • Free**
-   - Visibility: **Public**
-2. **Push to Space**:
-   ```bash
-   git remote add space https://huggingface.co/spaces/<your-username>/veri-byte-backend
-   git push space main
-   ```
-   *(When prompted for password, enter a Hugging Face Access Token with **Write** permission from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)).*
-3. **Wait for Build**:
-   - The [`Dockerfile`](Dockerfile) runs as non-root `user` (uid 1000) and preloads InsightFace `buffalo_l` and SigLIP deepfake weights directly into the image so cold requests are instant.
-   - Once running, verify backend health:
-     ```bash
-     curl https://<your-username>-veri-byte-backend.hf.space/api/health
-     ```
-
----
-
-### Step 2: Deploy Frontend on Vercel
-
-1. Go to [Vercel Dashboard](https://vercel.com) and click **"Add New Project"** ➔ **"Import Git Repository"**.
-2. Select your repository (`ashmitsamanta/Ai_based-fake-identity-detection-system`).
-3. Vercel automatically detects [`vercel.json`](vercel.json) and [`package.json`](package.json):
-   - **Framework Preset**: `Vite`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `frontend/dist`
-4. Add Environment Variable in Vercel:
-   - **Key**: `VITE_API_URL`
-   - **Value**: `https://<your-username>-veri-byte-backend.hf.space` *(no trailing slash)*
-5. Click **Deploy**. Your frontend is live with SSL at `https://<your-project>.vercel.app`!
+Once your Vercel frontend URL is live, tighten CORS on Cloud Run from wildcard to your frontend domain:
+```powershell
+gcloud run services update veri-byte-backend `
+  --region asia-south1 `
+  --update-env-vars CORS_ORIGINS=https://your-project.vercel.app
+```
 
 ---
 

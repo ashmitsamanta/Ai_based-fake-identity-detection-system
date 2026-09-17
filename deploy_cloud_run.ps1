@@ -79,11 +79,28 @@ Write-Host "Backend URL: $ServiceUrl" -ForegroundColor Cyan
 Write-Host "`n[*] Pinging health endpoint: $ServiceUrl/api/health ..." -ForegroundColor Gray
 try {
     $healthRes = Invoke-RestMethod -Uri "$ServiceUrl/api/health" -Method Get -TimeoutSec 60
-    Write-Host "[+] Health check passed!" -ForegroundColor Green
+    Write-Host "[+] Health check PASSED! Service is responsive and initialized." -ForegroundColor Green
     $healthRes | ConvertTo-Json -Depth 3 | Write-Host -ForegroundColor DarkGray
 } catch {
-    Write-Host "[!] Cold-start warning: Health check timed out or pending container initialization." -ForegroundColor Yellow
-    Write-Host "    Test manually via: curl $ServiceUrl/api/health" -ForegroundColor Yellow
+    Write-Host "`n[!] CRITICAL: Health check request failed!" -ForegroundColor Red
+    
+    $statusCode = $null
+    if ($_.Exception.Response) {
+        $statusCode = [int]$_.Exception.Response.StatusCode
+    }
+    
+    if ($statusCode -eq 403) {
+        Write-Host "    HTTP 403 Forbidden: Cloud Run is rejecting unauthenticated traffic." -ForegroundColor Red
+        Write-Host "    Fix: Verify that --allow-unauthenticated was permitted by your GCP organization policy." -ForegroundColor Yellow
+    } elseif ($statusCode -eq 500 -or $statusCode -eq 502 -or $statusCode -eq 503) {
+        Write-Host "    HTTP $statusCode Error: The container crashed during startup (e.g. OOM, import failure, or missing dependency)." -ForegroundColor Red
+        Write-Host "    View live container crash logs:" -ForegroundColor Yellow
+        Write-Host "      gcloud run services logs read $ServiceName --region $Region --limit 40" -ForegroundColor White
+    } else {
+        Write-Host "    Error detail: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "    To diagnose container status, inspect logs:" -ForegroundColor Yellow
+        Write-Host "      gcloud run services logs read $ServiceName --region $Region --limit 40" -ForegroundColor White
+    }
 }
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
