@@ -37,7 +37,7 @@ export default function App() {
   const [elaBase64, setElaBase64] = useState(null);
 
   // Backend API Base URL (configurable via VITE_API_URL in production, defaults to relative /api)
-  const API_BASE = import.meta.env.VITE_API_URL || '';
+  const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
   // Backend API Status
   const [apiHealth, setApiHealth] = useState(null);

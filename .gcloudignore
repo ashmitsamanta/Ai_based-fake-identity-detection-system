@@ -1,0 +1,15 @@
+.gcloudignore
+.git
+.gitignore
+.dockerignore
+venv/
+.venv/
+frontend/
+node_modules/
+**/__pycache__/
+*.pyc
+temp_uploads/
+sample_data/
+.vscode/
+.idea/
+.gemini/
