@@ -27,9 +27,27 @@ except Exception:
     TEMP_DIR = Path(tempfile.gettempdir()) / "veri_byte_temp_uploads"
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
 FRONTEND_DIST_DIR: Path = ROOT_DIR / "frontend" / "dist"
+
+# Production environment detection (Cloud Run sets K_SERVICE automatically)
+IS_PRODUCTION: bool = bool(
+    os.environ.get("K_SERVICE")
+    or os.environ.get("ENVIRONMENT", "").strip().lower() in ("prod", "production")
+)
+
 _DEFAULT_LOCAL_CORS: str = "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8000,http://localhost:8000"
-_cors_raw = os.environ.get("CORS_ORIGINS", _DEFAULT_LOCAL_CORS)
-CORS_ORIGINS: List[str] = [orig.strip() for orig in _cors_raw.split(",") if orig.strip()]
+_cors_raw = os.environ.get("CORS_ORIGINS")
+
+if IS_PRODUCTION:
+    if not _cors_raw or _cors_raw.strip() == "*":
+        raise ValueError(
+            "CORS Security Violation: In production mode (Cloud Run), CORS_ORIGINS must be explicitly set "
+            "to your authorized Vercel domain (e.g. 'https://veri-byte.vercel.app'). "
+            "Permissive wildcard '*' and empty origins are strictly prohibited."
+        )
+    CORS_ORIGINS: List[str] = [orig.strip() for orig in _cors_raw.split(",") if orig.strip()]
+else:
+    _cors_raw = _cors_raw or _DEFAULT_LOCAL_CORS
+    CORS_ORIGINS: List[str] = [orig.strip() for orig in _cors_raw.split(",") if orig.strip()]
 
 
 

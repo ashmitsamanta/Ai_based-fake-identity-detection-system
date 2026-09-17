@@ -7,7 +7,8 @@
 param(
     [string]$ProjectId = "",
     [string]$Region = "asia-south1",
-    [string]$ServiceName = "veri-byte-backend"
+    [string]$ServiceName = "veri-byte-backend",
+    [string]$CorsOrigin = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,11 +50,23 @@ Write-Host "[+] Using Project: $ProjectId" -ForegroundColor Green
 Write-Host "[+] Using Region:  $Region (Mumbai)" -ForegroundColor Green
 gcloud config set project $ProjectId
 
-# 4. Enable Required GCP APIs
+# 4. CORS Origin Configuration (Strict Production Security)
+if ([string]::IsNullOrWhiteSpace($CorsOrigin)) {
+    Write-Host "`n[*] CORS Security Policy: Production requires an explicit Vercel domain." -ForegroundColor Yellow
+    $CorsOrigin = Read-Host "Enter your Vercel frontend domain (e.g. https://veri-byte.vercel.app)"
+}
+if ([string]::IsNullOrWhiteSpace($CorsOrigin) -or $CorsOrigin.Trim() -eq "*") {
+    Write-Host "[!] Error: Permissive wildcard '*' and empty origins are strictly prohibited in production." -ForegroundColor Red
+    exit 1
+}
+$CorsOrigin = $CorsOrigin.Trim().TrimEnd('/')
+Write-Host "[+] Authorized CORS Origin: $CorsOrigin" -ForegroundColor Green
+
+# 5. Enable Required GCP APIs
 Write-Host "`n[*] Ensuring required GCP APIs are enabled..." -ForegroundColor Gray
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
 
-# 5. Build and Deploy to Cloud Run
+# 6. Build and Deploy to Cloud Run
 Write-Host "`n[*] Deploying $ServiceName to Cloud Run from source..." -ForegroundColor Cyan
 Write-Host "    (Source is filtered using .gcloudignore to skip local venv & node_modules)" -ForegroundColor DarkGray
 
@@ -65,7 +78,7 @@ gcloud run deploy $ServiceName `
   --concurrency 1 `
   --timeout 300 `
   --allow-unauthenticated `
-  --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=*"
+  --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=$CorsOrigin"
 
 # 6. Retrieve Service URL
 $ServiceUrl = (gcloud run services describe $ServiceName --region $Region --format="value(status.url)")

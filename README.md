@@ -383,7 +383,7 @@ Turnkey deployment scripts are provided for all operating systems:
      --concurrency 1 `
      --timeout 300 `
      --allow-unauthenticated `
-     --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=*"
+     --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=https://your-project.vercel.app"
    ```
 
    **Bash (Linux / macOS / Cloud Shell)**:
@@ -396,7 +396,7 @@ Turnkey deployment scripts are provided for all operating systems:
      --concurrency 1 \
      --timeout 300 \
      --allow-unauthenticated \
-     --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=*"
+     --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=https://your-project.vercel.app"
    ```
 
    **Critical Flags Explained**:
@@ -434,17 +434,6 @@ Scale-to-zero means an idle container takes ~15–25s on the initial call to loa
    - **Key**: `VITE_API_URL`
    - **Value**: `https://veri-byte-backend-xxx.asia-south1.run.app` *(no trailing slash)*
 5. Click **Deploy**. Your frontend is live with SSL at `https://<your-project>.vercel.app`!
-
----
-
-### Step 3: Lock Down CORS (Post-Deployment)
-
-Once your Vercel frontend URL is live, tighten CORS on Cloud Run from wildcard to your frontend domain:
-```powershell
-gcloud run services update veri-byte-backend `
-  --region asia-south1 `
-  --update-env-vars CORS_ORIGINS=https://your-project.vercel.app
-```
 
 ---
 

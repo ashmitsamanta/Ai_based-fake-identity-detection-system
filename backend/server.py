@@ -42,12 +42,11 @@ app = FastAPI(
     description="High-performance biometric and forensic document screening API",
 )
 
-# Enable CORS for local React development and production frontend
-origins = getattr(config, "CORS_ORIGINS", ["*"])
+# Enable CORS: strictly locked down to configured origins (Vercel domain in production)
+origins = getattr(config, "CORS_ORIGINS", [])
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins != ["*"] else ["*"],
-    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.hf\.space|https://huggingface\.co|https://.*\.onrender\.com|https://.*\.railway\.app|http://localhost:.*|http://127\.0\.0\.1:.*",
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -261,9 +260,9 @@ else:
 if __name__ == "__main__":
     import os
     import uvicorn
-    default_port = 7860 if os.environ.get("SPACE_ID") else 8000
-    default_host = "0.0.0.0" if os.environ.get("SPACE_ID") else "127.0.0.1"
-    port = int(os.environ.get("PORT", default_port))
-    host = os.environ.get("HOST", default_host)
+    # Cloud Run injects PORT (default 8080). Local development defaults to 8000.
+    port = int(os.environ.get("PORT", 8080 if getattr(config, "IS_PRODUCTION", False) else 8000))
+    # In container or production, bind to 0.0.0.0. Local development defaults to 127.0.0.1.
+    host = os.environ.get("HOST", "0.0.0.0" if getattr(config, "IS_PRODUCTION", False) else "127.0.0.1")
     uvicorn.run(app, host=host, port=port, reload=False)
 

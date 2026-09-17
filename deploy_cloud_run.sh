@@ -10,6 +10,7 @@ set -euo pipefail
 REGION="${1:-asia-south1}"
 SERVICE_NAME="${2:-veri-byte-backend}"
 PROJECT_ID="${3:-}"
+CORS_ORIGIN="${4:-}"
 
 echo "============================================================"
 echo "  Veri-Byte Backend -> Google Cloud Run Deployment (POSIX)  "
@@ -47,11 +48,26 @@ echo "[+] Using Project: $PROJECT_ID"
 echo "[+] Using Region:  $REGION (Mumbai)"
 gcloud config set project "$PROJECT_ID"
 
-# 4. Enable required GCP APIs
+# 4. CORS Origin Configuration (Strict Production Security)
+if [ -z "$CORS_ORIGIN" ]; then
+    echo ""
+    echo "[*] CORS Security Policy: Production requires an explicit Vercel domain."
+    read -rp "Enter your Vercel frontend domain (e.g. https://veri-byte.vercel.app): " CORS_ORIGIN
+fi
+
+if [ -z "$CORS_ORIGIN" ] || [ "$CORS_ORIGIN" = "*" ]; then
+    echo "[!] Error: Permissive wildcard '*' and empty origins are strictly prohibited in production."
+    exit 1
+fi
+# Strip trailing slash
+CORS_ORIGIN="${CORS_ORIGIN%/}"
+echo "[+] Authorized CORS Origin: $CORS_ORIGIN"
+
+# 5. Enable required GCP APIs
 echo "[*] Ensuring required GCP APIs are enabled..."
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
 
-# 5. Build and Deploy to Cloud Run from source
+# 6. Build and Deploy to Cloud Run from source
 echo "[*] Deploying $SERVICE_NAME to Cloud Run from source..."
 echo "    (Source is filtered using .gcloudignore to skip local venv & node_modules)"
 
@@ -63,7 +79,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --concurrency 1 \
   --timeout 300 \
   --allow-unauthenticated \
-  --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=*"
+  --set-env-vars "ENABLE_NEURAL_DEEPFAKE=true,CORS_ORIGINS=$CORS_ORIGIN"
 
 # 6. Retrieve Service URL
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format="value(status.url)")
